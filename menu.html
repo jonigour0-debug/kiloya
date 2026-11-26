@@ -1,0 +1,62 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>KILOYA - Main Menu</title>
+<style>
+body {
+  margin: 0;
+  background: linear-gradient(135deg,#050b18,#102d50);
+  color: white;
+  font-family: Arial;
+  text-align: center;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+}
+.menu {
+  padding: 35px;
+  border: 2px solid #00eaff;
+  border-radius: 20px;
+  box-shadow: 0 0 30px #007d9c;
+  width: min(80%,350px);
+}
+h1 {
+  font-size: 55px;
+  color: #00eaff;
+  text-shadow: 0 0 20px #00eaff;
+}
+button {
+  display: block;
+  width: 100%;
+  padding: 15px;
+  margin: 15px 0;
+  background: #007d9c;
+  color: white;
+  border: 1px solid #00eaff;
+  border-radius: 10px;
+  font-size: 18px;
+  cursor: pointer;
+}
+button:hover {
+  background: #00aaca;
+}
+</style>
+</head>
+<body>
+<div class="menu">
+  <h1>KILOYA</h1>
+  <h3>THE POWER HERO</h3>
+  <p>Choose Your Hero</p>
+  <button onclick="startGame()">KILOYA</button>
+  <button onclick="alert('More Heroes Coming Soon!')">LOCKED HERO</button>
+  <button onclick="startGame()">START GAME</button>
+</div>
+
+<script>
+function startGame() {
+  window.location.href = "index.html";
+}
+</script>
+</body>
+</html>
