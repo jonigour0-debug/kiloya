@@ -79,3 +79,52 @@ func power_punch():
         if global_position.distance_to(enemy.global_position) < 70:
             if enemy.has_method("take_hit"):
                 enemy.take_hit(15)
+
+# KILOYA CHARACTER DESIGN
+
+func _draw():
+
+    # Head
+    draw_circle(Vector2(0, -38), 13, Color("#f2c9a0"))
+
+    # Hair
+    draw_arc(
+        Vector2(0, -40),
+        13, 3.14, 6.28, 20,
+        Color.BLACK, 5
+    )
+
+    # Body / Armor
+    draw_rect(
+        Rect2(-12, -25, 24, 32),
+        Color("#172b4d")
+    )
+
+    # Energy Core
+    draw_circle(Vector2(0, -12), 5, Color("#00eaff"))
+
+    # Arms
+    draw_line(
+        Vector2(-10, -22),
+        Vector2(-22, -5),
+        Color("#172b4d"), 7
+    )
+
+    draw_line(
+        Vector2(10, -22),
+        Vector2(22, -5),
+        Color("#172b4d"), 7
+    )
+
+    # Legs
+    draw_line(
+        Vector2(-6, 7),
+        Vector2(-10, 27),
+        Color("#111827"), 8
+    )
+
+    draw_line(
+        Vector2(6, 7),
+        Vector2(10, 27),
+        Color("#111827"), 8
+    )
