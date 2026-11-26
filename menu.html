@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>KILOYA - Main Menu</title>
+<title>KILOYA - Level Select</title>
 <style>
 body {
   margin: 0;
@@ -10,53 +10,62 @@ body {
   color: white;
   font-family: Arial;
   text-align: center;
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-}
-.menu {
-  padding: 35px;
-  border: 2px solid #00eaff;
-  border-radius: 20px;
-  box-shadow: 0 0 30px #007d9c;
-  width: min(80%,350px);
 }
 h1 {
-  font-size: 55px;
   color: #00eaff;
+  font-size: 50px;
   text-shadow: 0 0 20px #00eaff;
 }
+.container {
+  max-width: 500px;
+  margin: 30px auto;
+  padding: 20px;
+}
+.levels {
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 15px;
+}
 button {
-  display: block;
-  width: 100%;
-  padding: 15px;
-  margin: 15px 0;
+  padding: 20px;
   background: #007d9c;
   color: white;
-  border: 1px solid #00eaff;
-  border-radius: 10px;
-  font-size: 18px;
+  border: 2px solid #00eaff;
+  border-radius: 12px;
+  font-size: 20px;
   cursor: pointer;
 }
 button:hover {
   background: #00aaca;
 }
+.locked {
+  background: #333b50;
+  border-color: #777;
+  color: #bbb;
+}
 </style>
 </head>
 <body>
-<div class="menu">
-  <h1>KILOYA</h1>
-  <h3>THE POWER HERO</h3>
-  <p>Choose Your Hero</p>
-  <button onclick="startGame()">KILOYA</button>
-  <button onclick="alert('More Heroes Coming Soon!')">LOCKED HERO</button>
-  <button onclick="startGame()">START GAME</button>
-</div>
 
-<script>
-function startGame() {
-  window.location.href = "index.html";
-}
-</script>
+<div class="container">
+<h1>KILOYA</h1>
+<h2>SELECT YOUR LEVEL</h2>
+
+<div class="levels">
+<button onclick="location.href='index.html'">
+LEVEL 1
+</button>
+
+<button class="locked" onclick="alert('Level 2 Coming Soon!')">LEVEL 2 🔒</button>
+<button class="locked" onclick="alert('Level 3 Coming Soon!')">LEVEL 3 🔒</button>
+<button class="locked" onclick="alert('Level 4 Coming Soon!')">LEVEL 4 🔒</button>
+<button class="locked" onclick="alert('Level 5 Coming Soon!')">LEVEL 5 🔒</button>
+<button class="locked" onclick="alert('Level 6 Coming Soon!')">LEVEL 6 🔒</button>
+<button class="locked" onclick="alert('Level 7 Coming Soon!')">LEVEL 7 🔒</button>
+<button class="locked" onclick="alert('Level 8 Coming Soon!')">LEVEL 8 🔒</button>
+<button class="locked" onclick="alert('Level 9 Coming Soon!')">LEVEL 9 🔒</button>
+<button class="locked" onclick="alert('Level 10 Coming Soon!')">LEVEL 10 🔒</button>
+</div>
+</div>
 </body>
 </html>
