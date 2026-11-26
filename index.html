@@ -1,0 +1,373 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KILOYA - The Power Hero</title>
+
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #050b18;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+h1 {
+  color: #00eaff;
+  padding: 15px;
+  letter-spacing: 5px;
+  text-shadow: 0 0 15px #00eaff;
+}
+
+#game {
+  display: block;
+  width: 95%;
+  max-width: 950px;
+  margin: 10px auto;
+  border: 2px solid #00eaff;
+  background: #101c35;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 15px;
+}
+
+button {
+  background: #102d4d;
+  color: white;
+  border: 1px solid #00eaff;
+  padding: 13px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+button:hover {
+  background: #007d9c;
+}
+
+#status {
+  color: #00eaff;
+  padding: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>KILOYA</h1>
+<p>THE POWER HERO</p>
+
+<canvas id="game" width="900" height="450"></canvas>
+
+<div id="status">ENERGY: 100 | ENEMIES: 3</div>
+
+<div class="controls">
+<button onclick="moveLeft=true">LEFT</button>
+<button onclick="jump()">JUMP</button>
+<button onclick="moveRight=true">RIGHT</button>
+<button onclick="blast()">Q - BEAM</button>
+<button onclick="kick()">E - KICK</button>
+<button onclick="punch()">F - PUNCH</button>
+</div>
+
+<p style="padding:10px">
+Keyboard: A/D = Move | SPACE = Jump | Q = Beam | E = Kick | F = Punch
+</p>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const statusText = document.getElementById("status");
+
+let keys = {};
+let moveLeft = false;
+let moveRight = false;
+
+const player = {
+  x: 100, y: 330,
+  w: 35, h: 70,
+  vx: 0, vy: 0,
+  speed: 4,
+  energy: 100,
+  facing: 1,
+  grounded: false
+};
+
+let enemies = [
+  {x: 480, y: 350, hp: 100, vx: 0},
+  {x: 650, y: 350, hp: 100, vx: 0},
+  {x: 780, y: 350, hp: 100, vx: 0}
+];
+
+let effects = [];
+let beamCooldown = false;
+let attackCooldown = false;
+let gravity = 0.65;
+let gameOver = false;
+
+function drawPlayer() {
+  const x = player.x;
+  const y = player.y;
+
+  // Legs
+  ctx.fillStyle = "#101b35";
+  ctx.fillRect(x+5, y+45, 10, 25);
+  ctx.fillRect(x+21, y+45, 10, 25);
+
+  // Body armor
+  ctx.fillStyle = "#183e65";
+  ctx.fillRect(x+3, y+18, 30, 32);
+
+  // Energy core
+  ctx.fillStyle = "#00eaff";
+  ctx.shadowColor = "#00eaff";
+  ctx.shadowBlur = 15;
+  ctx.fillRect(x+12, y+28, 12, 12);
+  ctx.shadowBlur = 0;
+
+  // Head
+  ctx.fillStyle = "#e7bd9a";
+  ctx.fillRect(x+7, y, 22, 22);
+
+  // Hair
+  ctx.fillStyle = "#10101c";
+  ctx.fillRect(x+5, y-3, 25, 8);
+
+  // Arms
+  ctx.strokeStyle = "#00bde9";
+  ctx.lineWidth = 7;
+  ctx.beginPath();
+  ctx.moveTo(x+5, y+25);
+  ctx.lineTo(x-5, y+43);
+  ctx.moveTo(x+30, y+25);
+  ctx.lineTo(x+40, y+43);
+  ctx.stroke();
+}
+
+function drawEnemies() {
+  enemies.forEach(e => {
+    if (e.hp <= 0) return;
+
+    ctx.fillStyle = "#a51d42";
+    ctx.fillRect(e.x, e.y-35, 35, 35);
+
+    ctx.fillStyle = "#ff4444";
+    ctx.fillRect(e.x+5, e.y-30, 25, 8);
+
+    ctx.fillStyle = "white";
+    ctx.fillRect(e.x, e.y-45, 35, 5);
+
+    ctx.fillStyle = "#39ff74";
+    ctx.fillRect(e.x, e.y-45, 35*(e.hp/100), 5);
+
+    ctx.fillStyle = "#a51d42";
+    ctx.fillRect(e.x+5, e.y, 10, 15);
+    ctx.fillRect(e.x+22, e.y, 10, 15);
+  });
+}
+
+function drawBackground() {
+  let gradient = ctx.createLinearGradient(0,0,0,450);
+  gradient.addColorStop(0,"#101c38");
+  gradient.addColorStop(1,"#263b58");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0,0,900,450);
+
+  ctx.fillStyle = "#263c50";
+  for(let i=0;i<900;i+=80) {
+    ctx.fillRect(i,240,40,110);
+  }
+
+  ctx.fillStyle = "#142338";
+  ctx.fillRect(0,400,900,50);
+
+  ctx.fillStyle = "#00eaff";
+  ctx.fillRect(0,400,900,3);
+}
+
+function jump() {
+  if(player.grounded) {
+    player.vy = -12;
+    player.grounded = false;
+  }
+}
+
+function hitEnemies(range, damage, knockback) {
+  enemies.forEach(e => {
+    if(e.hp <= 0) return;
+
+    const distance = Math.abs((e.x+17)-(player.x+17));
+
+    if(distance < range) {
+      e.hp = Math.max(0,e.hp-damage);
+      e.vx = player.facing * knockback;
+    }
+  });
+}
+
+function blast() {
+  if(beamCooldown || player.energy < 30) return;
+
+  beamCooldown = true;
+  player.energy -= 30;
+
+  effects.push({type:"beam",time:25});
+  hitEnemies(350,40,12);
+
+  setTimeout(() => beamCooldown=false,3000);
+}
+
+function kick() {
+  if(attackCooldown) return;
+
+  attackCooldown=true;
+  effects.push({type:"kick",time:12});
+  hitEnemies(110,30,15);
+
+  setTimeout(()=>attackCooldown=false,500);
+}
+
+function punch() {
+  if(attackCooldown) return;
+
+  attackCooldown=true;
+  effects.push({type:"punch",time:12});
+  hitEnemies(75,15,8);
+
+  setTimeout(()=>attackCooldown=false,350);
+}
+
+function drawEffects() {
+  effects.forEach(e => {
+    if(e.type==="beam") {
+      ctx.shadowColor="#00eaff";
+      ctx.shadowBlur=25;
+      ctx.fillStyle="#00eaff";
+      ctx.fillRect(
+        player.facing===1 ? player.x+30 : player.x-320,
+        player.y+25,320,20
+      );
+      ctx.fillStyle="white";
+      ctx.fillRect(
+        player.facing===1 ? player.x+30 : player.x-320,
+        player.y+32,320,5
+      );
+      ctx.shadowBlur=0;
+    }
+
+    if(e.type==="kick" || e.type==="punch") {
+      ctx.fillStyle="#ffcf40";
+      ctx.font="bold 20px Arial";
+      ctx.fillText(
+        e.type==="kick" ? "KICK!" : "PUNCH!",
+        player.x+40*player.facing,
+        player.y
+      );
+    }
+
+    e.time--;
+  });
+
+  effects=effects.filter(e=>e.time>0);
+}
+
+function update() {
+  if(gameOver) return;
+
+  player.vx=0;
+
+  if(keys["a"] || keys["ArrowLeft"] || moveLeft) {
+    player.vx=-player.speed;
+    player.facing=-1;
+  }
+
+  if(keys["d"] || keys["ArrowRight"] || moveRight) {
+    player.vx=player.speed;
+    player.facing=1;
+  }
+
+  player.x += player.vx;
+  player.x = Math.max(0,Math.min(865,player.x));
+
+  player.vy += gravity;
+  player.y += player.vy;
+
+  if(player.y+70 >= 400) {
+    player.y=330;
+    player.vy=0;
+    player.grounded=true;
+  }
+
+  enemies.forEach(e=>{
+    if(e.hp<=0) return;
+    e.x += e.vx;
+    e.vx *= 0.85;
+    e.x=Math.max(0,Math.min(865,e.x));
+  });
+
+  drawBackground();
+  drawPlayer();
+  drawEnemies();
+  drawEffects();
+
+  let alive=enemies.filter(e=>e.hp>0).length;
+  statusText.textContent =
+    "ENERGY: "+player.energy+" | ENEMIES: "+alive;
+
+  if(alive===0) {
+    ctx.fillStyle="#00eaff";
+    ctx.font="bold 40px Arial";
+    ctx.fillText("LEVEL COMPLETE!",270,180);
+    gameOver=true;
+  }
+
+  requestAnimationFrame(update);
+}
+
+document.addEventListener("keydown",e=>{
+  keys[e.key]=true;
+
+  if(e.repeat) return;
+
+  if(e.code==="Space") {
+    e.preventDefault();
+    jump();
+  }
+
+  if(e.key.toLowerCase()==="q") blast();
+  if(e.key.toLowerCase()==="e") kick();
+  if(e.key.toLowerCase()==="f") punch();
+});
+
+document.addEventListener("keyup",e=>{
+  keys[e.key]=false;
+});
+
+document.querySelectorAll("button").forEach(btn=>{
+  if(btn.textContent==="LEFT") {
+    btn.onpointerdown=()=>moveLeft=true;
+    btn.onpointerup=()=>moveLeft=false;
+    btn.onpointerleave=()=>moveLeft=false;
+  }
+
+  if(btn.textContent==="RIGHT") {
+    btn.onpointerdown=()=>moveRight=true;
+    btn.onpointerup=()=>moveRight=false;
+    btn.onpointerleave=()=>moveRight=false;
+  }
+});
+
+update();
+</script>
+
+</body>
+</html>
