@@ -1,0 +1,448 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KILOYA - The Power Hero</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#050b18;color:white;
+ font-family:Arial;text-align:center;
+}
+h1{
+ color:#00eaff;font-size:42px;
+ letter-spacing:7px;
+ text-shadow:0 0 20px #00eaff;
+}
+button{
+ background:#102e50;color:white;
+ border:1px solid #00eaff;
+ padding:12px 17px;border-radius:8px;
+ cursor:pointer;font-weight:bold;
+ margin:5px;
+}
+button:hover{background:#007d9c}
+.screen{padding:20px}
+.hidden{display:none!important}
+.panel{
+ max-width:850px;margin:20px auto;
+ padding:20px;border:1px solid #00eaff;
+ border-radius:15px;
+ background:#0b1930;
+}
+#game{
+ width:95%;max-width:900px;
+ border:2px solid #00eaff;
+ background:#101c35;
+ display:block;margin:auto;
+}
+.stats{
+ display:flex;justify-content:center;
+ flex-wrap:wrap;gap:15px;margin:12px;
+ color:#00eaff;font-weight:bold;
+}
+.controls{
+ display:flex;justify-content:center;
+ flex-wrap:wrap;gap:5px;padding:12px;
+}
+.big{font-size:20px;padding:15px 30px}
+.hero-card{
+ border:2px solid #00eaff;
+ padding:20px;border-radius:12px;
+ display:inline-block;margin:10px;
+}
+#message{color:#00eaff;font-size:28px}
+</style>
+</head>
+
+<body>
+
+<!-- MAIN MENU -->
+<div id="menu" class="screen">
+<h1>KILOYA</h1>
+<h2>THE POWER HERO</h2>
+<p>Welcome to the world of KILOYA</p>
+
+<div class="panel">
+<h2>⚡ Choose Your Hero</h2>
+<div class="hero-card">
+<div style="font-size:65px">🦸</div>
+<h3>KILOYA</h3>
+<p>Power Hero</p>
+<button onclick="openLevels()">SELECT HERO</button>
+</div>
+<div class="hero-card">
+<div style="font-size:65px">🤖</div>
+<h3>ROBOT X</h3>
+<p>Coming Soon</p>
+</div>
+</div>
+</div>
+
+<!-- LEVEL MENU -->
+<div id="levels" class="screen hidden">
+<h1>SELECT LEVEL</h1>
+<div class="panel">
+<button class="big" onclick="startGame(1)">LEVEL 1 - CITY</button>
+<button class="big" id="level2" onclick="startGame(2)" disabled>
+LEVEL 2 - DARK CITY 🔒
+</button>
+<br>
+<button onclick="showMenu()">BACK</button>
+</div>
+</div>
+
+<!-- GAME -->
+<div id="gameScreen" class="screen hidden">
+<h1>KILOYA</h1>
+
+<div class="stats">
+<span id="health">❤️ HEALTH: 100</span>
+<span id="energy">⚡ ENERGY: 100</span>
+<span id="levelLabel">LEVEL 1</span>
+</div>
+
+<canvas id="game" width="900" height="450"></canvas>
+
+<div class="controls">
+<button id="left">⬅ LEFT</button>
+<button onclick="jump()">JUMP ⬆</button>
+<button id="right">RIGHT ➡</button>
+<button onclick="blast()">Q - BEAM</button>
+<button onclick="kick()">E - KICK</button>
+<button onclick="punch()">F - PUNCH</button>
+</div>
+<p>A/D = Move | SPACE = Jump | Q = Beam | E = Kick | F = Punch</p>
+</div>
+
+<!-- END SCREEN -->
+<div id="endScreen" class="screen hidden">
+<h1 id="endTitle">VICTORY!</h1>
+<p id="endMessage">You completed the level!</p>
+<button class="big" onclick="openLevels()">NEXT LEVEL</button>
+<button onclick="showMenu()">MAIN MENU</button>
+</div>
+
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+
+let player, enemies, level, running=false;
+let keys={};
+let effects=[];
+let energy=100;
+let health=100;
+let facing=1;
+let beamCooldown=false;
+let attackCooldown=false;
+let unlocked=1;
+let lastEnemyAttack=0;
+
+function hideAll(){
+ ["menu","levels","gameScreen","endScreen"].forEach(id=>
+ document.getElementById(id).classList.add("hidden"));
+}
+
+function showMenu(){
+ running=false;
+ hideAll();
+ document.getElementById("menu").classList.remove("hidden");
+}
+
+function openLevels(){
+ hideAll();
+ document.getElementById("levels").classList.remove("hidden");
+ document.getElementById("level2").disabled=unlocked<2;
+ document.getElementById("level2").textContent=
+ unlocked>=2?"LEVEL 2 - DARK CITY":"LEVEL 2 - DARK CITY 🔒";
+}
+
+function startGame(n){
+ level=n;
+ health=100;
+ energy=100;
+ facing=1;
+ beamCooldown=false;
+ attackCooldown=false;
+ effects=[];
+ lastEnemyAttack=Date.now();
+
+ player={
+  x:100,y:320,w:38,h:65,
+  vx:0,vy:0,grounded:true
+ };
+
+ enemies=n===1?[
+  {x:480,hp:100,max:100,boss:false},
+  {x:680,hp:100,max:100,boss:false}
+ ]:[
+  {x:650,hp:500,max:500,boss:true}
+ ];
+
+ hideAll();
+ document.getElementById("gameScreen").classList.remove("hidden");
+ document.getElementById("levelLabel").textContent="LEVEL "+n;
+
+ running=true;
+ update();
+}
+
+function jump(){
+ if(running && player.grounded){
+  player.vy=-13;
+  player.grounded=false;
+ }
+}
+
+function hitEnemies(range,damage,knockback){
+ enemies.forEach(e=>{
+  if(e.hp<=0)return;
+  let distance=Math.abs((e.x+20)-(player.x+19));
+  if(distance<range && (e.x-player.x)*facing>=-20){
+   e.hp=Math.max(0,e.hp-damage);
+   e.x+=facing*knockback;
+  }
+ });
+}
+
+function blast(){
+ if(!running || beamCooldown || energy<30)return;
+ beamCooldown=true;
+ energy-=30;
+ effects.push({type:"beam",time:25});
+ hitEnemies(360,45,30);
+ setTimeout(()=>beamCooldown=false,2500);
+}
+
+function kick(){
+ if(!running || attackCooldown)return;
+ attackCooldown=true;
+ effects.push({type:"kick",time:14});
+ hitEnemies(120,35,35);
+ setTimeout(()=>attackCooldown=false,500);
+}
+
+function punch(){
+ if(!running || attackCooldown)return;
+ attackCooldown=true;
+ effects.push({type:"punch",time:12});
+ hitEnemies(80,20,18);
+ setTimeout(()=>attackCooldown=false,300);
+}
+
+function drawBackground(){
+ let g=ctx.createLinearGradient(0,0,0,450);
+ g.addColorStop(0,level===1?"#142c50":"#08091e");
+ g.addColorStop(1,"#050b18");
+ ctx.fillStyle=g;
+ ctx.fillRect(0,0,900,450);
+
+ for(let i=0;i<900;i+=100){
+  let h=100+(i*7%100);
+  ctx.fillStyle=level===1?"#203b5c":"#18172f";
+  ctx.fillRect(i,400-h,70,h);
+
+  ctx.fillStyle="#00bde9";
+  ctx.fillRect(i+15,410-h,8,8);
+  ctx.fillRect(i+40,410-h,8,8);
+ }
+
+ ctx.fillStyle="#101e34";
+ ctx.fillRect(0,400,900,50);
+ ctx.fillStyle="#00eaff";
+ ctx.fillRect(0,400,900,3);
+}
+
+function drawPlayer(){
+ let x=player.x,y=player.y;
+
+ // Legs
+ ctx.fillStyle="#101b35";
+ ctx.fillRect(x+5,y+42,11,23);
+ ctx.fillRect(x+22,y+42,11,23);
+
+ // Armor
+ ctx.fillStyle="#174a75";
+ ctx.fillRect(x+3,y+18,32,30);
+
+ // Arms
+ ctx.strokeStyle="#00bde9";
+ ctx.lineWidth=8;
+ ctx.beginPath();
+ ctx.moveTo(x+5,y+25);
+ ctx.lineTo(x-5,y+43);
+ ctx.moveTo(x+32,y+25);
+ ctx.lineTo(x+42,y+43);
+ ctx.stroke();
+
+ // Energy Core
+ ctx.shadowColor="#00eaff";
+ ctx.shadowBlur=18;
+ ctx.fillStyle="#00eaff";
+ ctx.fillRect(x+13,y+27,12,12);
+ ctx.shadowBlur=0;
+
+ // Head
+ ctx.fillStyle="#e8c5a3";
+ ctx.fillRect(x+8,y,22,22);
+
+ // Hair
+ ctx.fillStyle="#10101c";
+ ctx.fillRect(x+6,y-4,26,9);
+}
+
+function drawEnemies(){
+ enemies.forEach(e=>{
+  if(e.hp<=0)return;
+
+  ctx.fillStyle=e.boss?"#a00043":"#9c294a";
+  ctx.fillRect(e.x, e.boss?270:325,
+   e.boss?65:38,e.boss?130:75);
+
+  ctx.fillStyle="#ff334f";
+  ctx.fillRect(e.x+8,e.boss?290:340,8,7);
+  ctx.fillRect(e.x+28,e.boss?290:340,8,7);
+
+  // Health bar
+  let y=e.boss?245:310;
+  ctx.fillStyle="white";
+  ctx.fillRect(e.x-5,y, e.boss?75:48,7);
+
+  ctx.fillStyle="#ff1744";
+  ctx.fillRect(e.x-5,y,(e.boss?75:48)*(e.hp/e.max),7);
+ });
+}
+
+function drawEffects(){
+ effects.forEach(e=>{
+  if(e.type==="beam"){
+   ctx.shadowColor="#00eaff";
+   ctx.shadowBlur=25;
+   ctx.fillStyle="#00eaff";
+   ctx.fillRect(facing===1?player.x+30:player.x-330,
+   player.y+25,330,22);
+   ctx.fillStyle="white";
+   ctx.fillRect(facing===1?player.x+30:player.x-330,
+   player.y+33,330,6);
+   ctx.shadowBlur=0;
+  }else{
+   ctx.fillStyle="#ffdf55";
+   ctx.font="bold 20px Arial";
+   ctx.fillText(e.type==="kick"?"DANGER KICK!":"POWER PUNCH!",
+   player.x+35*facing,player.y-10);
+  }
+  e.time--;
+ });
+ effects=effects.filter(e=>e.time>0);
+}
+
+function update(){
+ if(!running)return;
+
+ let direction=0;
+ if(keys.a||keys.arrowleft)direction=-1;
+ if(keys.d||keys.arrowright)direction=1;
+
+ player.vx=direction*4;
+ player.x+=player.vx;
+ player.x=Math.max(0,Math.min(860,player.x));
+ if(direction!==0)facing=direction;
+
+ player.vy+=0.65;
+ player.y+=player.vy;
+
+ if(player.y>=335){
+  player.y=335;
+  player.vy=0;
+  player.grounded=true;
+ }
+
+ // Boss attacks
+ enemies.forEach(e=>{
+  if(e.hp<=0)return;
+
+  if(e.boss){
+   e.x+=Math.sin(Date.now()/600)*1.2;
+
+   if(Date.now()-lastEnemyAttack>2200){
+    if(Math.abs(e.x-player.x)<350){
+     health=Math.max(0,health-5);
+    }
+    lastEnemyAttack=Date.now();
+   }
+  }else{
+   e.x+=Math.sin(Date.now()/400)*0.5;
+  }
+ });
+
+ drawBackground();
+ drawEnemies();
+ drawPlayer();
+ drawEffects();
+
+ document.getElementById("health").textContent="❤️ HEALTH: "+health;
+ document.getElementById("energy").textContent="⚡ ENERGY: "+energy;
+
+ let alive=enemies.filter(e=>e.hp>0).length;
+
+ if(health<=0){
+  finish("GAME OVER","KILOYA needs another chance!");
+  return;
+ }
+
+ if(alive===0){
+  if(level===1)unlocked=2;
+  finish("LEVEL COMPLETE!","KILOYA has won the battle!");
+  return;
+ }
+
+ requestAnimationFrame(update);
+}
+
+function finish(title,message){
+ running=false;
+ hideAll();
+ document.getElementById("endScreen").classList.remove("hidden");
+ document.getElementById("endTitle").textContent=title;
+ document.getElementById("endMessage").textContent=message;
+}
+
+document.addEventListener("keydown",e=>{
+ let k=e.key.toLowerCase();
+ keys[k]=true;
+
+ if(e.code==="Space"){
+  e.preventDefault();
+  jump();
+ }
+ if(e.repeat)return;
+ if(k==="q")blast();
+ if(k==="e")kick();
+ if(k==="f")punch();
+});
+
+document.addEventListener("keyup",e=>{
+ keys[e.key.toLowerCase()]=false;
+});
+
+function bindMove(id,key){
+ let b=document.getElementById(id);
+ b.addEventListener("pointerdown",e=>{
+  e.preventDefault();
+  keys[key]=true;
+ });
+ ["pointerup","pointerleave","pointercancel"].forEach(event=>{
+  b.addEventListener(event,()=>keys[key]=false);
+ });
+}
+
+bindMove("left","a");
+bindMove("right","d");
+
+showMenu();
+</script>
+</body>
+</html>
