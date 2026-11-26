@@ -1,0 +1,132 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>KILOYA - Dark City</title>
+<style>
+body {
+  margin: 0;
+  background: #050510;
+  color: white;
+  font-family: Arial;
+  text-align: center;
+}
+h1 { color: #00eaff; }
+canvas {
+  width: 95%;
+  max-width: 900px;
+  background: #10152d;
+  border: 2px solid #00eaff;
+}
+button {
+  padding: 12px 20px;
+  margin: 8px;
+  background: #073b57;
+  color: white;
+  border: 1px solid #00eaff;
+  border-radius: 8px;
+}
+</style>
+</head>
+<body>
+
+<h1>KILOYA: DARK CITY</h1>
+<p>LEVEL 2 - BOSS BATTLE</p>
+
+<canvas id="game" width="800" height="400"></canvas>
+
+<h3 id="health">BOSS HEALTH: 500</h3>
+<button onclick="attack(50)">POWER PUNCH</button>
+<button onclick="attack(100)">DANGER KICK</button>
+<button onclick="attack(150)">RADIATION BEAM</button>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let bossHealth = 500;
+let heroHealth = 100;
+let bossX = 570;
+let bossDirection = -1;
+let gameOver = false;
+
+function draw() {
+  ctx.clearRect(0,0,800,400);
+
+  // Dark City
+  ctx.fillStyle="#10152d";
+  ctx.fillRect(0,0,800,400);
+
+  ctx.fillStyle="#263957";
+  for(let i=0;i<800;i+=100) {
+    ctx.fillRect(i,180,65,180);
+  }
+
+  // Ground
+  ctx.fillStyle="#00eaff";
+  ctx.fillRect(0,360,800,4);
+
+  // Hero
+  ctx.fillStyle="#00eaff";
+  ctx.fillRect(120,290,35,70);
+  ctx.fillStyle="white";
+  ctx.fillRect(128,270,20,20);
+
+  // Boss
+  ctx.fillStyle="#b00040";
+  ctx.fillRect(bossX,270,70,90);
+  ctx.fillStyle="#ff4444";
+  ctx.fillRect(bossX+10,250,50,25);
+
+  // Boss health bar
+  ctx.fillStyle="white";
+  ctx.fillRect(250,30,300,20);
+  ctx.fillStyle="#ff1744";
+  ctx.fillRect(250,30,300*(bossHealth/500),20);
+
+  // Hero health bar
+  ctx.fillStyle="white";
+  ctx.fillRect(20,60,150,15);
+  ctx.fillStyle="#00ff77";
+  ctx.fillRect(20,60,150*(heroHealth/100),15);
+
+  if(!gameOver) {
+    bossX += bossDirection;
+    if(bossX < 450 || bossX > 680) bossDirection *= -1;
+
+    if(Math.random()<0.003) {
+      heroHealth -= 5;
+    }
+
+    if(heroHealth<=0) {
+      heroHealth=0;
+      gameOver=true;
+    }
+
+    requestAnimationFrame(draw);
+  } else {
+    ctx.fillStyle="white";
+    ctx.font="35px Arial";
+    ctx.fillText("GAME OVER",300,200);
+  }
+
+  if(bossHealth<=0) {
+    gameOver=true;
+    ctx.fillStyle="#00eaff";
+    ctx.font="35px Arial";
+    ctx.fillText("BOSS DEFEATED!",260,200);
+  }
+}
+
+function attack(damage) {
+  if(gameOver || bossHealth<=0) return;
+
+  bossHealth=Math.max(0,bossHealth-damage);
+  document.getElementById("health").innerText=
+  "BOSS HEALTH: "+bossHealth;
+}
+
+draw();
+</script>
+</body>
+</html>
